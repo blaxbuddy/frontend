@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { ArrowLeft, HeartHandshake, Package, MapPin, Send } from "lucide-react";
 import { LiveDeliveryMap } from "@/components/dashboard/LiveDeliveryMap";
+import { useAuth } from "@/contexts/AuthContext";
+import { LogOut } from "lucide-react";
 
 export default function NgoPortal() {
   const [showForm, setShowForm] = useState(false);
@@ -16,6 +18,8 @@ export default function NgoPortal() {
   const [dropOTP, setDropOTP] = useState("----");
 
   const [volunteerStatus, setVolunteerStatus] = useState<string | null>(null);
+
+  const { user, logout } = useAuth();
 
   useEffect(() => {
     // Listen for cross-tab storage changes
@@ -73,6 +77,10 @@ export default function NgoPortal() {
     });
   };
 
+  const handleLogout = () => {
+    logout();
+  };
+
   // Fixed coordinates for the demo: Sarafa Bazaar (pickup) -> Sirpur Lake (NGO)
   const pickupPos = { lat: 22.7185, lng: 75.8569 };
   const dropPos = { lat: 22.6864, lng: 75.8534 };
@@ -96,11 +104,21 @@ export default function NgoPortal() {
               <p className="text-sm opacity-90 mt-0.5">Request surplus food donations for those in need</p>
             </div>
           </div>
-          <Link to="/">
-            <Button variant="outline" size="sm" className="bg-white/10 border-white/20 hover:bg-white/20 text-white">
-              Dashboard →
+          <div className="flex items-center gap-3">
+            <div className="text-sm">
+              <p>Welcome, {user?.name}</p>
+              <p className="text-xs opacity-75">Role: {user?.role}</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleLogout}
+              className="bg-white/10 border-white/20 hover:bg-white/20 text-white gap-2"
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
             </Button>
-          </Link>
+          </div>
         </div>
       </header>
 

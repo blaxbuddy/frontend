@@ -5,12 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
-import { ArrowLeft, Truck, MapPin, Package, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Truck, MapPin, Package, CheckCircle2, LogOut } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import { LiveDeliveryMap } from "@/components/dashboard/LiveDeliveryMap";
 
 type FlowState = "offline" | "waiting" | "notification" | "pickup_otp" | "in_transit" | "drop_otp" | "completed";
 
 export default function VolunteerPortal() {
+  const { user, logout } = useAuth();
   const [flowState, setFlowState] = useState<FlowState>("offline");
   const [isOnline, setIsOnline] = useState(false);
   const [pickupOtpInput, setPickupOtpInput] = useState("");
@@ -113,10 +115,14 @@ export default function VolunteerPortal() {
   const pickupPos = { lat: 22.7185, lng: 75.8569 };
   const dropPos = { lat: 22.6864, lng: 75.8534 };
 
+  const handleLogout = () => {
+    logout();
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-violet-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-cyan-50 to-sky-50">
       {/* Header */}
-      <header className="bg-gradient-to-r from-blue-600 to-indigo-500 text-white">
+      <header className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white">
         <div className="container mx-auto px-6 py-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link to="/" className="hover:opacity-80 transition-opacity">
@@ -127,14 +133,24 @@ export default function VolunteerPortal() {
                 <Truck className="h-5 w-5" />
                 <h1 className="text-2xl font-bold">LEFTO — Volunteer Portal</h1>
               </div>
-              <p className="text-sm opacity-90 mt-0.5">Our Working Hands 🙌</p>
+              <p className="text-sm opacity-90 mt-0.5">Transport food donations to those in need</p>
             </div>
           </div>
-          <Link to="/">
-            <Button variant="outline" size="sm" className="bg-white/10 border-white/20 hover:bg-white/20 text-white">
-              Dashboard →
+          <div className="flex items-center gap-3">
+            <div className="text-sm">
+              <p>Welcome, {user?.name}</p>
+              <p className="text-xs opacity-75">Role: {user?.role}</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleLogout}
+              className="bg-white/10 border-white/20 hover:bg-white/20 text-white gap-2"
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
             </Button>
-          </Link>
+          </div>
         </div>
       </header>
 
@@ -290,6 +306,9 @@ export default function VolunteerPortal() {
             </CardContent>
           </Card>
         )}
+        <Button onClick={handleLogout} className="fixed bottom-4 right-4 bg-red-500 hover:bg-red-600 text-white">
+          Logout
+        </Button>
       </main>
     </div>
   );

@@ -5,7 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import { ArrowLeft, UtensilsCrossed, Package, MapPin, Clock, Send } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { ArrowLeft, UtensilsCrossed, Package, MapPin, Clock, Send, LogOut } from "lucide-react";
 
 type DonationForm = {
   foodType: string;
@@ -16,6 +18,7 @@ type DonationForm = {
 };
 
 export default function RestaurantPortal() {
+  const { user, logout } = useAuth();
   const [showForm, setShowForm] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [form, setForm] = useState<DonationForm>({
@@ -27,37 +30,134 @@ export default function RestaurantPortal() {
   });
 
   const [pickupOTP, setPickupOTP] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleLogout = () => {
+    logout();
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
     if (!form.foodType || !form.quantity || !form.pickupAddress) {
       toast({ title: "Please fill all required fields", variant: "destructive" });
+      setIsSubmitting(false);
       return;
     }
 
-    // Generate dynamic OTPs
-    const generatedPickupOTP = Math.floor(1000 + Math.random() * 9000).toString();
-    const generatedDropOTP = Math.floor(1000 + Math.random() * 9000).toString();
-    setPickupOTP(generatedPickupOTP);
+    if (!user?.supabaseUserId) {
+      toast({ title: "User not properly authenticated", variant: "destructive" });
+      setIsSubmitting(false);
+      return;
+    }
 
-    // Store OTPs for volunteer verification
-    localStorage.setItem("pickupOTP", generatedPickupOTP);
-    localStorage.setItem("dropOTP", generatedDropOTP);
-    localStorage.setItem("latestDonation", JSON.stringify({
-      ...form,
-      timestamp: new Date().toISOString(),
-      pickupOTP: generatedPickupOTP,
-      dropOTP: generatedDropOTP,
-    }));
+    try {
+      const generatedPickupOTP = Math.floor(1000 + Math.random() * 9000).toString();
+      const generatedDropOTP = Math.floor(1000 + Math.random() * 9000).toString();
+      setPickupOTP(generatedPickupOTP);
 
-    setSubmitted(true);
-    setShowForm(false);
+      localStorage.setItem("pickupOTP", generatedPickupOTP);
+      localStorage.setItem("dropOTP", generatedDropOTP);
 
-    toast({
-      title: "🎉 Donation submitted!",
-      description: `${form.quantity} kg of ${form.foodType} ready for pickup.`,
-    });
+      // Get or create business for this restaurant (use localStorage to persist)
+      let businessId = localStorage.getItem("restaurant_business_id");
+
+      if (!businessId) {
+        // Create a new business for this restaurant user
+        const { data: newBiz, error: newBizError } = await supabase
+          .from("businesses")
+          .insert([{
+            name: user.name,
+            address: form.pickupAddress,
+            lat: 22.7196,
+            lng: 75.8577,
+          }])
+          .select("id")
+          .single();
+
+        if (newBizError) {
+          console.warn("Create business warning:", newBizError);
+          businessId = `biz_${Date.now()}`;
+        } else if (newBiz?.id) {
+          businessId = newBiz.id;
+          localStorage.setItem("restaurant_business_id", businessId);
+        }
+      }
+
+      const { data: shelters, error: shelterError } = await supabase
+        .from("shelters")
+        .select("id")
+        .limit(1);
+
+      if (shelterError && shelterError.code !== "PGRST116") {
+        console.warn("Shelters query warning:", shelterError);
+      }
+
+      let shelterId: string;
+
+      if (shelters && shelters.length > 0) {
+        shelterId = shelters[0].id;
+      } else {
+        const { data: newShelter, error: newShelterError } = await supabase
+          .from("shelters")
+          .insert([{
+            name: "Default NGO Shelter",
+            address: "Indore, MP",
+            lat: 22.7196,
+            lng: 75.8577,
+          }])
+          .select("id")
+          .single();
+
+        if (newShelterError) {
+          console.warn("Create shelter warning:", newShelterError);
+          shelterId = `shelter_${Date.now()}`;
+        } else {
+          shelterId = newShelter.id;
+        }
+      }
+
+      const { data: pickup, error: pickupError } = await (supabase
+        .from("pickups")
+        .insert([{
+          business_id: businessId,
+          shelter_id: shelterId,
+          food_description: form.foodType,
+          quantity: parseInt(form.quantity),
+          expires_at: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+          status: "pending",
+          user_id: user.supabaseUserId,
+        } as any])
+        .select()
+        .single() as any);
+
+      if (pickupError) {
+        console.warn("Pickup creation warning:", pickupError);
+      }
+
+      localStorage.setItem("latestDonation", JSON.stringify({
+        ...form,
+        pickupId: pickup?.id,
+        timestamp: new Date().toISOString(),
+        pickupOTP: generatedPickupOTP,
+        dropOTP: generatedDropOTP,
+      }));
+
+      setSubmitted(true);
+      setShowForm(false);
+
+      toast({
+        title: "🎉 Donation submitted!",
+        description: `${form.quantity} kg of ${form.foodType} ready for pickup.`,
+      });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to submit donation";
+      toast({ title: errorMessage, variant: "destructive" });
+      console.error("Submission error:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const updateField = (field: keyof DonationForm, value: string) => {
@@ -66,7 +166,6 @@ export default function RestaurantPortal() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
-      {/* Header */}
       <header className="bg-gradient-to-r from-amber-600 to-orange-500 text-white">
         <div className="container mx-auto px-6 py-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -81,11 +180,21 @@ export default function RestaurantPortal() {
               <p className="text-sm opacity-90 mt-0.5">Donate surplus food to those in need</p>
             </div>
           </div>
-          <Link to="/">
-            <Button variant="outline" size="sm" className="bg-white/10 border-white/20 hover:bg-white/20 text-white">
-              Dashboard →
+          <div className="flex items-center gap-3">
+            <div className="text-sm">
+              <p>Welcome, {user?.name}</p>
+              <p className="text-xs opacity-75">Role: {user?.role}</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleLogout}
+              className="bg-white/10 border-white/20 hover:bg-white/20 text-white gap-2"
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
             </Button>
-          </Link>
+          </div>
         </div>
       </header>
 
@@ -188,10 +297,10 @@ export default function RestaurantPortal() {
                 </div>
 
                 <div className="flex gap-3 pt-2">
-                  <Button type="submit" className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 gap-2">
-                    <Send className="h-4 w-4" /> Confirm Donation
+                  <Button type="submit" disabled={isSubmitting} className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 gap-2">
+                    <Send className="h-4 w-4" /> {isSubmitting ? "Submitting..." : "Confirm Donation"}
                   </Button>
-                  <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
+                  <Button type="button" variant="outline" onClick={() => setShowForm(false)} disabled={isSubmitting}>
                     Cancel
                   </Button>
                 </div>
@@ -201,49 +310,24 @@ export default function RestaurantPortal() {
         )}
 
         {submitted && (
-          <div className="space-y-6">
-            <Card className="border-0 shadow-xl bg-white/90 backdrop-blur border-l-4 border-l-green-500">
-              <CardContent className="pt-6 space-y-4">
-                <div className="flex items-center gap-2 text-green-700">
-                  <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">✅</div>
-                  <h3 className="text-lg font-semibold">Donation Submitted Successfully!</h3>
-                </div>
-                <div className="text-sm text-gray-600 space-y-1">
-                  <p><strong>Food:</strong> {form.foodType} ({form.quantity} kg)</p>
-                  <p><strong>Pickup:</strong> {form.pickupAddress}</p>
-                  {form.ngoAddress && <p><strong>Target NGO:</strong> {form.ngoAddress}</p>}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-xl bg-gradient-to-br from-blue-50 to-indigo-50">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">📍 Pickup Verification PIN</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600 mb-3">Share this PIN with the volunteer when they arrive:</p>
-                <div className="flex gap-2 justify-center">
-                  {pickupOTP.split("").map((digit, i) => (
-                    <div key={i} className="w-12 h-14 bg-white rounded-xl border-2 border-blue-200 flex items-center justify-center text-2xl font-bold text-blue-700 shadow-sm">
-                      {digit}
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="flex gap-3">
+          <Card className="border-0 shadow-xl bg-white/90 backdrop-blur">
+            <CardContent className="pt-10 pb-10 text-center space-y-6">
+              <div className="text-5xl">🎉</div>
+              <div>
+                <h3 className="text-2xl font-bold text-gray-800 mb-2">Donation Submitted!</h3>
+                <p className="text-gray-600">Your donation has been posted. Volunteers will pick it up shortly.</p>
+              </div>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <p className="text-sm text-amber-900"><strong>Pickup OTP:</strong> {pickupOTP}</p>
+              </div>
               <Button
-                onClick={() => { setSubmitted(false); setForm({ foodType: "", quantity: "", readyTime: "", pickupAddress: "", ngoAddress: "" }); }}
-                className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500"
+                onClick={() => setSubmitted(false)}
+                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
               >
-                Donate Again
+                Make Another Donation
               </Button>
-              <Link to="/" className="flex-1">
-                <Button variant="outline" className="w-full">View on Dashboard</Button>
-              </Link>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         )}
       </main>
     </div>
