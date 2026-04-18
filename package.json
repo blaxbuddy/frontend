@@ -1,0 +1,15 @@
+{
+  "name": "livemapdashboard-main",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "npm run dev --prefix frontend",
+    "build": "npm run build --prefix frontend",
+    "build:dev": "npm run build:dev --prefix frontend",
+    "lint": "npm run lint --prefix frontend",
+    "preview": "npm run preview --prefix frontend",
+    "test": "npm run test --prefix frontend",
+    "test:watch": "npm run test:watch --prefix frontend",
+    "install": "npm install --prefix frontend"
+  }
+}
