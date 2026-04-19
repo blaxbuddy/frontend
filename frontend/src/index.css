@@ -116,11 +116,12 @@
 
 @layer base {
   * {
-    @apply border-border;
+    border-color: hsl(var(--border));
   }
 
   body {
-    @apply bg-background text-foreground;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
     font-feature-settings: "cv11", "ss01";
   }
 }
@@ -191,5 +192,97 @@
 }
 .route-flow {
   animation: route-dash 1.2s linear infinite;
+}
+
+/* Neumorphism classes redefined to Reflective Glassmorphism */
+.neu-bg {
+  background-color: #f1f5f9; /* sleek slate-50 */
+}
+
+.neu-flat {
+  background: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: inset 0 0 30px rgba(255, 255, 255, 0.6), 0 8px 32px 0 rgba(0, 0, 0, 0.08);
+}
+
+.neu-flat:hover {
+  box-shadow: inset 0 0 40px rgba(255, 255, 255, 0.7), 0 10px 40px 0 rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.neu-pressed {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: inset 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.neu-input {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+  color: #1e293b;
+}
+.neu-input:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.6);
+  border-color: rgba(255, 255, 255, 0.8);
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.05), 0 0 0 2px rgba(255,255,255,0.4);
+}
+
+.neu-btn {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+  color: #1e293b;
+  font-weight: 600;
+  transition: all 0.2s ease-in-out;
+}
+
+.neu-btn:hover {
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  transform: translateY(-2px);
+}
+
+.neu-btn:active {
+  background: rgba(255, 255, 255, 0.4);
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+  transform: translateY(1px);
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: inset 0 0 30px rgba(255, 255, 255, 0.6), 0 8px 32px 0 rgba(0, 0, 0, 0.08);
+}
+
+/* Animations */
+@keyframes fade-in-up {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.font-sleek {
+  font-family: 'Inter', system-ui, sans-serif;
+  letter-spacing: -0.02em;
 }
 

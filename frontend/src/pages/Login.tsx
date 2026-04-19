@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, UserRole } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, User, ArrowLeft, KeyRound, Mail } from 'lucide-react';
+import { Logo } from '@/components/Logo';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -85,104 +83,122 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 flex items-center justify-center p-4">
+    <div className="min-h-screen relative font-sleek text-slate-700 flex flex-col items-center justify-center p-6 gap-10 overflow-hidden bg-[#e0e5ec]">
+      {/* Decorative glowing blobs for the reflective greenish glass effect */}
+      <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-emerald-400/40 rounded-full blur-[100px]" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-emerald-300/40 rounded-full blur-[100px]" />
+      <div className="absolute top-[20%] right-[20%] w-64 h-64 bg-teal-300/30 rounded-full blur-[80px]" />
+
+      <div className="relative z-10 animate-fade-in-up" style={{ animationDelay: '0.1s', animationFillMode: 'both' }}>
+        <Logo />
+      </div>
       {step === 'role-select' ? (
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-bold">Who are you?</CardTitle>
-            <CardDescription>Select your role to get started</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <div className="relative z-10 w-full max-w-md rounded-[2rem] p-10 animate-fade-in-up bg-white/30 backdrop-blur-2xl border border-white/60 shadow-[inset_0_0_30px_rgba(255,255,255,0.6),0_8px_32px_0_rgba(16,185,129,0.2)]" style={{ animationDelay: '0.2s', animationFillMode: 'both' }}>
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-slate-800 tracking-tight">Who are you?</h2>
+            <p className="text-slate-500 mt-2">Select your role to get started</p>
+          </div>
+          
+          <div className="space-y-5">
             {roles.map(role => (
               <button
                 key={role.value}
                 onClick={() => handleRoleSelect(role.value)}
-                className="w-full p-4 text-left border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all"
+                className="neu-btn w-full p-6 text-left rounded-2xl flex flex-col gap-1 transition-all"
               >
-                <div className="font-semibold text-lg">{role.label}</div>
-                <div className="text-sm text-gray-600">{role.description}</div>
+                <div className="font-bold text-xl text-slate-700">{role.label}</div>
+                <div className="text-sm text-slate-500 font-normal">{role.description}</div>
               </button>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ) : (
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold">Login as {selectedRole && selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)}</CardTitle>
-            <CardDescription>Enter your credentials</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {(formError || error) && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex gap-2 text-sm text-red-700">
-                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                  <div>{formError || error}</div>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Name</label>
-                <Input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  placeholder="Your name"
-                  disabled={isLoading}
-                />
+        <div className="relative z-10 w-full max-w-md rounded-[2rem] p-10 animate-fade-in-up bg-white/30 backdrop-blur-2xl border border-white/60 shadow-[inset_0_0_30px_rgba(255,255,255,0.6),0_8px_32px_0_rgba(16,185,129,0.2)]" style={{ animationDelay: '0.2s', animationFillMode: 'both' }}>
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-slate-800 tracking-tight">
+              Login as {selectedRole && selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)}
+            </h2>
+            <p className="text-slate-500 mt-2">Enter your credentials</p>
+          </div>
+          
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {(formError || error) && (
+              <div className="p-4 neu-pressed rounded-2xl flex gap-3 text-sm text-rose-500 items-center font-medium">
+                <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                <div>{formError || error}</div>
               </div>
+            )}
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Email</label>
-                <Input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  placeholder="your@email.com"
-                  disabled={isLoading}
-                />
-              </div>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-slate-600 ml-2 flex items-center gap-2">
+                <User className="w-4 h-4 text-emerald-500" /> Name
+              </label>
+              <input
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleInputChange}
+                className="neu-input w-full px-5 py-4 rounded-2xl placeholder-slate-400"
+                placeholder="Your name"
+                disabled={isLoading}
+              />
+            </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Password</label>
-                <Input
-                  type="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  placeholder="••••••"
-                  disabled={isLoading}
-                />
-              </div>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-slate-600 ml-2 flex items-center gap-2">
+                <Mail className="w-4 h-4 text-amber-500" /> Email
+              </label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                className="neu-input w-full px-5 py-4 rounded-2xl placeholder-slate-400"
+                placeholder="your@email.com"
+                disabled={isLoading}
+              />
+            </div>
 
-              <div className="text-xs text-gray-500 mt-2">
-                <p><strong>Demo Credentials:</strong></p>
-                <p>Email: {selectedRole}@test.com</p>
-                <p>Password: password123</p>
-              </div>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-slate-600 ml-2 flex items-center gap-2">
+                <KeyRound className="w-4 h-4 text-rose-500" /> Password
+              </label>
+              <input
+                type="password"
+                name="password"
+                value={formData.password}
+                onChange={handleInputChange}
+                className="neu-input w-full px-5 py-4 rounded-2xl placeholder-slate-400"
+                placeholder="••••••••"
+                disabled={isLoading}
+              />
+            </div>
 
-              <div className="flex gap-3 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleBackToRole}
-                  disabled={isLoading}
-                  className="flex-1"
-                >
-                  Back
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                  className="flex-1"
-                >
-                  {isLoading ? 'Logging in...' : 'Login'}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+            <div className="neu-pressed rounded-xl p-4 text-xs text-slate-500 mt-2 text-center space-y-1">
+              <p className="font-semibold text-slate-600 uppercase tracking-widest mb-2">Demo Credentials</p>
+              <p>Email: <span className="font-mono text-slate-700">{selectedRole}@test.com</span></p>
+              <p>Password: <span className="font-mono text-slate-700">password123</span></p>
+            </div>
+
+            <div className="flex gap-4 pt-4">
+              <button
+                type="button"
+                onClick={handleBackToRole}
+                disabled={isLoading}
+                className="neu-flat px-6 py-4 rounded-2xl text-slate-500 hover:text-slate-700 font-semibold transition-colors flex items-center gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" /> Back
+              </button>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="neu-btn flex-1 py-4 rounded-2xl text-emerald-600 text-lg flex items-center justify-center gap-2"
+              >
+                {isLoading ? 'Authenticating...' : 'Secure Login'}
+              </button>
+            </div>
+          </form>
+        </div>
       )}
     </div>
   );

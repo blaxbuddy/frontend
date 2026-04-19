@@ -74,8 +74,11 @@ export function useLiveData(userIds?: { supabaseUserId?: string; role?: string }
           .from('businesses')
           .select('*');
 
-        if (!bizError && bizData) {
-          setBusinesses(bizData as Business[]);
+        let validBizIds = new Set(DEMO_BUSINESSES.map(b => b.id));
+        if (!bizError && bizData && bizData.length > 0) {
+          const validBiz = bizData.filter((b: any) => b.lat > 15);
+          validBiz.forEach((b: any) => validBizIds.add(b.id));
+          setBusinesses([...DEMO_BUSINESSES, ...(validBiz as Business[])]);
         }
 
         // Fetch shelters
@@ -83,8 +86,9 @@ export function useLiveData(userIds?: { supabaseUserId?: string; role?: string }
           .from('shelters')
           .select('*');
 
-        if (!shelterError && shelterData) {
-          setShelters(shelterData as Shelter[]);
+        if (!shelterError && shelterData && shelterData.length > 0) {
+          const validShelter = shelterData.filter((s: any) => s.lat > 15);
+          setShelters([...DEMO_SHELTERS, ...(validShelter as Shelter[])]);
         }
 
         // Fetch drivers
@@ -92,8 +96,9 @@ export function useLiveData(userIds?: { supabaseUserId?: string; role?: string }
           .from('drivers')
           .select('*');
 
-        if (!driverError && driverData) {
-          setDrivers(driverData as Driver[]);
+        if (!driverError && driverData && driverData.length > 0) {
+          const validDrivers = driverData.filter((d: any) => d.lat > 15);
+          setDrivers([...DEMO_DRIVERS, ...(validDrivers as Driver[])]);
         }
 
         // Fetch pickups
@@ -103,12 +108,15 @@ export function useLiveData(userIds?: { supabaseUserId?: string; role?: string }
         // For now, we'll fetch all and filter client-side if needed
         const { data: pickupData, error: pickupError } = await pickupQuery;
 
-        if (!pickupError && pickupData) {
-          const filtered = pickupData.filter((p: any) => {
+        if (!pickupError && pickupData && pickupData.length > 0) {
+          const validPickups = pickupData.filter((p: any) => validBizIds.has(p.business_id));
+          const filtered = validPickups.filter((p: any) => {
             if (!userIds?.supabaseUserId) return true;
             return p.user_id === userIds.supabaseUserId;
           });
-          setPickups(filtered as Pickup[]);
+          if (filtered.length > 0 || userIds?.supabaseUserId) {
+            setPickups(userIds?.supabaseUserId ? (filtered as Pickup[]) : [...DEMO_PICKUPS, ...(filtered as Pickup[])]);
+          }
         }
 
         setLoading(false);

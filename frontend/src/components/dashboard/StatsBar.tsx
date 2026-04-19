@@ -24,7 +24,7 @@ export function StatsBar({ drivers, pickups }: { drivers: Driver[]; pickups: Pic
       {items.map((it) => (
         <div
           key={it.label}
-          className="rounded-xl bg-surface border border-border/60 p-3 shadow-sm"
+          className="rounded-2xl glass-panel p-4"
         >
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <span className={`h-2 w-2 rounded-full ${it.dot}`} />

@@ -1,13 +1,10 @@
 import { useState, useCallback, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { ArrowLeft, Truck, MapPin, Package, CheckCircle2, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { LiveDeliveryMap } from "@/components/dashboard/LiveDeliveryMap";
+import { Logo } from "@/components/Logo";
 
 type FlowState = "offline" | "waiting" | "notification" | "pickup_otp" | "in_transit" | "drop_otp" | "completed";
 
@@ -120,195 +117,231 @@ export default function VolunteerPortal() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-cyan-50 to-sky-50">
+    <div className="min-h-screen neu-bg relative font-sleek text-slate-700 overflow-hidden">
+      {/* Decorative glowing blobs for the reflective greenish glass effect */}
+      <div className="absolute top-[10%] left-[-10%] w-96 h-96 bg-purple-400/30 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-[10%] right-[-10%] w-96 h-96 bg-purple-300/30 rounded-full blur-[100px] pointer-events-none" />
+
       {/* Header */}
-      <header className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white">
-        <div className="container mx-auto px-6 py-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link to="/" className="hover:opacity-80 transition-opacity">
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
-            <div>
-              <div className="flex items-center gap-2">
-                <Truck className="h-5 w-5" />
-                <h1 className="text-2xl font-bold">LEFTO — Volunteer Portal</h1>
-              </div>
-              <p className="text-sm opacity-90 mt-0.5">Transport food donations to those in need</p>
+      <header className="px-6 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-purple-500 text-white shadow-md sticky top-0 z-50">
+        <div className="flex items-center gap-6">
+          <Logo />
+          <div className="hidden md:block pl-6 border-l border-purple-400">
+            <div className="flex items-center gap-2">
+              <Truck className="h-5 w-5 text-white" />
+              <h1 className="text-xl font-bold">Volunteer Portal</h1>
             </div>
+            <p className="text-sm text-purple-100 mt-0.5">Transport food donations to those in need</p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="text-sm">
-              <p>Welcome, {user?.name}</p>
-              <p className="text-xs opacity-75">Role: {user?.role}</p>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleLogout}
-              className="bg-white/10 border-white/20 hover:bg-white/20 text-white gap-2"
-            >
-              <LogOut className="h-4 w-4" />
-              Logout
-            </Button>
+        </div>
+        <div className="flex items-center gap-3 self-start md:self-auto">
+          <div className="text-right text-sm mr-2 hidden md:block">
+            <p className="font-semibold text-white">{user?.name}</p>
+            <p className="text-xs text-purple-100 capitalize">{user?.role}</p>
           </div>
+          <Link to="/">
+            <button className="px-4 py-2 rounded-xl flex items-center gap-1.5 text-xs font-semibold bg-white/20 hover:bg-white/30 transition-colors text-white backdrop-blur-md">
+              <ArrowLeft className="h-3 w-3" /> Dashboard
+            </button>
+          </Link>
+          <button
+            onClick={handleLogout}
+            className="px-4 py-2 rounded-xl flex items-center gap-1.5 text-xs font-semibold bg-white/20 hover:bg-white/30 transition-colors text-white backdrop-blur-md"
+          >
+            <LogOut className="h-3 w-3" /> Logout
+          </button>
         </div>
       </header>
 
-      <main className="container mx-auto px-6 py-10 max-w-2xl space-y-6">
+      <main className="container mx-auto px-6 py-10 max-w-2xl space-y-8 relative z-10">
         {/* Online/Offline Toggle */}
-        <Card className="border-0 shadow-xl bg-white/90 backdrop-blur">
-          <CardContent className="pt-6 flex items-center justify-between">
-            <div>
-              <div className="text-sm font-medium">Status</div>
-              <div className={`text-lg font-bold ${isOnline ? "text-green-600" : "text-gray-500"}`}>
-                {isOnline ? "Online" : "Offline"}
-              </div>
+        <div className="neu-flat rounded-3xl p-6 flex items-center justify-between animate-fade-in-up">
+          <div>
+            <div className="text-sm font-semibold text-slate-500 uppercase tracking-widest mb-1">Status</div>
+            <div className={`text-xl font-bold ${isOnline ? "text-purple-600" : "text-slate-400"}`}>
+              {isOnline ? "Online" : "Offline"}
             </div>
-            <Switch checked={isOnline} onCheckedChange={handleToggle} />
-          </CardContent>
-        </Card>
+          </div>
+          
+          <button 
+            onClick={() => handleToggle(!isOnline)}
+            className={`w-16 h-8 rounded-full p-1 transition-colors duration-300 ${isOnline ? 'bg-purple-500 shadow-inner' : 'neu-pressed'}`}
+          >
+            <div className={`w-6 h-6 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${isOnline ? 'translate-x-8' : 'translate-x-0'}`} />
+          </button>
+        </div>
 
         {/* Status text */}
-        <div className="text-center text-sm text-gray-600 bg-white/60 rounded-lg py-3 px-4 backdrop-blur">
+        <div className="text-center text-sm font-semibold text-slate-500 neu-pressed rounded-2xl py-4 px-6 animate-fade-in-up">
           {statusText[flowState]}
         </div>
 
         {/* Notification overlay */}
         {flowState === "notification" && (
-          <Card className="border-0 shadow-2xl bg-white/95 backdrop-blur border-l-4 border-l-blue-500">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">🆕 New Delivery Request</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-orange-500" />
-                  <span><strong>Pickup:</strong> {latestDonation?.pickupAddress || "Sarafa Bazaar, Indore"}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-green-500" />
-                  <span><strong>Drop:</strong> {latestDonation?.ngoAddress || "Annapurna Rasoi, Near Sirpur Lake"}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-blue-500" />
-                  <span><strong>Distance:</strong> 2.4 km from current location</span>
-                </div>
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 flex items-center gap-2">
-                  <Package className="h-4 w-4 text-amber-600" />
-                  <span className="text-amber-800 font-medium">
-                    Package: {latestDonation?.quantity || 50} kg, {latestDonation?.foodType || "Surplus Jalebi + Garadu"}
-                  </span>
+          <div className="neu-flat rounded-3xl p-8 relative overflow-hidden animate-fade-in-up">
+            <div className="absolute top-0 left-0 w-2 h-full bg-purple-500" />
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 neu-pressed rounded-full">
+                <Truck className="h-5 w-5 text-purple-500" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-800">New Delivery Request</h3>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="flex items-start gap-3 p-4 neu-pressed rounded-2xl">
+                <MapPin className="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <div className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1">Pickup</div>
+                  <div className="text-slate-800 font-medium">{latestDonation?.pickupAddress || "Sarafa Bazaar, Indore"}</div>
                 </div>
               </div>
-              <div className="flex gap-3 pt-1">
-                <Button onClick={handleAccept} className="flex-1 bg-green-600 hover:bg-green-700">
-                  Accept ✓
-                </Button>
-                <Button onClick={handleDecline} variant="outline" className="flex-1 border-red-300 text-red-600 hover:bg-red-50">
-                  Decline ✗
-                </Button>
+
+              <div className="flex items-start gap-3 p-4 neu-pressed rounded-2xl">
+                <MapPin className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <div className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1">Drop-off</div>
+                  <div className="text-slate-800 font-medium">{latestDonation?.ngoAddress || "Annapurna Rasoi, Near Sirpur Lake"}</div>
+                </div>
               </div>
-            </CardContent>
-          </Card>
+
+              <div className="flex items-center justify-between p-4 neu-pressed rounded-2xl border border-purple-500/20">
+                <div className="flex items-center gap-2">
+                  <Package className="h-5 w-5 text-purple-600" />
+                  <span className="text-slate-600 text-sm font-semibold">Package:</span>
+                </div>
+                <span className="text-purple-700 font-bold text-right">
+                  {latestDonation?.quantity || 50} kg, {latestDonation?.foodType || "Surplus Jalebi + Garadu"}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex gap-4 pt-6">
+              <button 
+                onClick={handleAccept} 
+                className="neu-btn flex-1 py-4 rounded-2xl text-emerald-600 font-bold text-lg"
+              >
+                Accept ✓
+              </button>
+              <button 
+                onClick={handleDecline} 
+                className="neu-flat flex-1 py-4 rounded-2xl text-rose-500 font-bold text-lg"
+              >
+                Decline ✗
+              </button>
+            </div>
+          </div>
         )}
 
         {/* Pickup OTP verification */}
         {flowState === "pickup_otp" && (
-          <Card className="border-0 shadow-2xl bg-white/95 backdrop-blur border-l-4 border-l-orange-500">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">🔐 Pickup Verification</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-gray-600">Enter the OTP provided by the restaurant to confirm pickup.</p>
-              <Input
-                type="text"
-                maxLength={4}
-                placeholder="••••"
-                value={pickupOtpInput}
-                onChange={(e) => setPickupOtpInput(e.target.value)}
-                className="text-center text-2xl tracking-[0.5em] font-bold"
-              />
-              <Button onClick={verifyPickup} className="w-full bg-orange-500 hover:bg-orange-600">
-                Verify & Start Journey
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="neu-flat rounded-3xl p-8 text-center space-y-6 animate-fade-in-up">
+            <h3 className="text-2xl font-bold text-slate-800 tracking-tight">Pickup Verification</h3>
+            <p className="text-slate-600 max-w-sm mx-auto">
+              Enter the OTP provided by the restaurant to confirm you've collected the food.
+            </p>
+            <input
+              type="text"
+              maxLength={4}
+              placeholder="••••"
+              value={pickupOtpInput}
+              onChange={(e) => setPickupOtpInput(e.target.value)}
+              className="neu-input w-full max-w-[200px] mx-auto block text-center text-3xl tracking-[0.5em] font-bold py-4 rounded-2xl"
+            />
+            <button 
+              onClick={verifyPickup} 
+              className="neu-btn w-full max-w-xs mx-auto py-4 rounded-2xl text-purple-600 font-bold text-lg"
+            >
+              Verify & Start Journey
+            </button>
+          </div>
         )}
 
         {/* In transit */}
         {flowState === "in_transit" && (
-          <div className="space-y-6">
-            <Card className="border-0 shadow-xl bg-blue-50 border-l-4 border-l-blue-500">
-              <CardContent className="pt-6 text-center space-y-3">
-                <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-                  <Truck className="h-8 w-8 text-blue-600 animate-pulse" />
-                </div>
-                <div className="text-lg font-semibold text-blue-800">In Transit</div>
-                <p className="text-sm text-blue-600">Navigating to Annapurna Rasoi, Near Sirpur Lake...</p>
-              </CardContent>
-            </Card>
+          <div className="space-y-8 animate-fade-in-up">
+            <div className="neu-flat rounded-3xl p-8 text-center space-y-4">
+              <div className="mx-auto w-20 h-20 neu-pressed rounded-full flex items-center justify-center">
+                <Truck className="h-10 w-10 text-purple-500 animate-pulse" />
+              </div>
+              <h3 className="text-2xl font-bold text-slate-800 tracking-tight">In Transit</h3>
+              <p className="text-slate-600 font-medium">
+                Navigating to Annapurna Rasoi, Near Sirpur Lake...
+              </p>
+            </div>
             
-            <Card className="border-0 shadow-xl overflow-hidden h-64">
+            <div className="neu-flat rounded-3xl overflow-hidden h-64 relative border border-white/30">
               <LiveDeliveryMap startPos={pickupPos} endPos={dropPos} progress={transitProgress} />
-            </Card>
+            </div>
           </div>
         )}
 
         {/* Drop-off OTP verification */}
         {flowState === "drop_otp" && (
-          <div className="space-y-6">
-            <Card className="border-0 shadow-2xl bg-white/95 backdrop-blur border-l-4 border-l-emerald-500">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg">🔐 Delivery Verification</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-gray-600">Enter the OTP provided by the NGO to confirm successful delivery.</p>
-                <Input
-                  type="text"
-                  maxLength={4}
-                  placeholder="••••"
-                  value={dropOtpInput}
-                  onChange={(e) => setDropOtpInput(e.target.value)}
-                  className="text-center text-2xl tracking-[0.5em] font-bold"
-                />
-                <Button onClick={verifyDrop} className="w-full bg-emerald-500 hover:bg-emerald-600">
-                  Verify & Complete
-                </Button>
-              </CardContent>
-            </Card>
+          <div className="space-y-8 animate-fade-in-up">
+            <div className="neu-flat rounded-3xl p-8 text-center space-y-6">
+              <h3 className="text-2xl font-bold text-slate-800 tracking-tight">Delivery Verification</h3>
+              <p className="text-slate-600 max-w-sm mx-auto">
+                Enter the OTP provided by the NGO to confirm successful delivery.
+              </p>
+              <input
+                type="text"
+                maxLength={4}
+                placeholder="••••"
+                value={dropOtpInput}
+                onChange={(e) => setDropOtpInput(e.target.value)}
+                className="neu-input w-full max-w-[200px] mx-auto block text-center text-3xl tracking-[0.5em] font-bold py-4 rounded-2xl"
+              />
+              <button 
+                onClick={verifyDrop} 
+                className="neu-btn w-full max-w-xs mx-auto py-4 rounded-2xl text-emerald-600 font-bold text-lg"
+              >
+                Verify & Complete
+              </button>
+            </div>
             
-            <Card className="border-0 shadow-xl overflow-hidden h-64">
+            <div className="neu-flat rounded-3xl overflow-hidden h-64 relative border border-white/30">
               <LiveDeliveryMap startPos={pickupPos} endPos={dropPos} progress={1} />
-            </Card>
+            </div>
+          </div>
+        )}
+
+        {/* Dashboard button for active deliveries */}
+        {['pickup_otp', 'in_transit', 'drop_otp'].includes(flowState) && (
+          <div className="pt-4 animate-fade-in-up">
+            <Link to="/">
+              <button className="neu-flat w-full py-4 rounded-2xl text-slate-600 font-bold text-lg">
+                View Live Map Dashboard
+              </button>
+            </Link>
           </div>
         )}
 
         {/* Completed */}
         {flowState === "completed" && (
-          <Card className="border-0 shadow-xl bg-gradient-to-br from-green-50 to-emerald-50 border-l-4 border-l-green-500">
-            <CardContent className="pt-8 pb-8 text-center space-y-4">
-              <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                <CheckCircle2 className="h-10 w-10 text-green-600" />
-              </div>
-              <div className="text-2xl font-bold text-green-800">Delivery Complete!</div>
-              <p className="text-gray-600">Thank you for helping feed people in need. 🙏</p>
-              <div className="flex gap-3 pt-2">
-                <Button
-                  onClick={() => { setFlowState("waiting"); setTimeout(() => setFlowState("notification"), 3000); }}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700"
-                >
-                  Accept More
-                </Button>
-                <Link to="/" className="flex-1">
-                  <Button variant="outline" className="w-full">Dashboard</Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="neu-flat rounded-3xl p-10 text-center space-y-6 animate-fade-in-up">
+            <div className="mx-auto w-24 h-24 neu-pressed rounded-full flex items-center justify-center">
+              <CheckCircle2 className="h-12 w-12 text-emerald-500" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-3xl font-bold text-slate-800">Delivery Complete!</h3>
+              <p className="text-slate-600 text-lg">Thank you for helping feed people in need. 🙏</p>
+            </div>
+            
+            <div className="flex gap-4 pt-6">
+              <button
+                onClick={() => { setFlowState("waiting"); setTimeout(() => setFlowState("notification"), 3000); }}
+                className="neu-btn flex-1 py-4 rounded-2xl text-purple-600 font-bold text-lg"
+              >
+                Accept More
+              </button>
+              <Link to="/" className="flex-1">
+                <button className="neu-flat w-full py-4 rounded-2xl text-slate-600 font-bold text-lg">
+                  Dashboard
+                </button>
+              </Link>
+            </div>
+          </div>
         )}
-        <Button onClick={handleLogout} className="fixed bottom-4 right-4 bg-red-500 hover:bg-red-600 text-white">
-          Logout
-        </Button>
       </main>
     </div>
   );

@@ -162,7 +162,7 @@ export function LiveMap({
           <Popup>
             <div className="font-semibold">{b.name}</div>
             <div className="text-xs opacity-70">{b.address}</div>
-            <div className="text-xs mt-1">Closes at {b.closes_at.slice(0, 5)}</div>
+            <div className="text-xs mt-1">Closes at {b.closes_at?.slice(0, 5) || "N/A"}</div>
           </Popup>
         </Marker>
       ))}
@@ -173,7 +173,7 @@ export function LiveMap({
           <Popup>
             <div className="font-semibold">{s.name}</div>
             <div className="text-xs opacity-70">{s.address}</div>
-            <div className="text-xs mt-1">Capacity {s.capacity} · until {s.accepts_until.slice(0, 5)}</div>
+            <div className="text-xs mt-1">Capacity {s.capacity || "N/A"} · until {s.accepts_until?.slice(0, 5) || "N/A"}</div>
           </Popup>
         </Marker>
       ))}

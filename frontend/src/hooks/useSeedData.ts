@@ -12,6 +12,7 @@ export function useSeedData() {
   const seeded = useRef(false);
 
   useEffect(() => {
+    return;
     if (seeded.current) return;
     seeded.current = true;
 

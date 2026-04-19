@@ -5,16 +5,19 @@ import { PickupList } from "@/components/dashboard/PickupList";
 import { StatsBar } from "@/components/dashboard/StatsBar";
 import { RestaurantNgoRouter } from "@/components/dashboard/RestaurantNgoRouter";
 import { RoutePanel } from "@/components/dashboard/RoutePanel";
+import { Logo } from "@/components/Logo";
 import { useLiveData } from "@/hooks/useLiveData";
 import { useSimulator } from "@/hooks/useSimulator";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Pause, Play, Radio, MapPin, Route, Navigation, UtensilsCrossed, HeartHandshake, Truck } from "lucide-react";
+import { Pause, Play, Radio, MapPin, Route, Navigation, UtensilsCrossed, HeartHandshake, Truck, LogOut } from "lucide-react";
 import type { RestaurantNgoRoute } from "@/lib/restaurantNgoRouting";
 import type { PlannedRoutes } from "@/lib/routeOptimiser";
 
 type SidebarTab = "pickups" | "planner" | "optimiser";
 
 const Index = () => {
+  const { user, logout } = useAuth();
   const { businesses, shelters, drivers, pickups, loading } = useLiveData();
   const { running, setRunning } = useSimulator(2500);
 
@@ -37,50 +40,60 @@ const Index = () => {
   ];
 
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen neu-bg font-sleek text-slate-700">
       {/* Header */}
-      <header className="bg-gradient-hero text-primary-foreground">
-        <div className="container mx-auto px-6 py-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 text-xs uppercase tracking-widest opacity-90">
-              <Radio className="h-3.5 w-3.5 animate-pulse" /> Live dashboard · Indore, MP
+      <header className="px-6 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-white/20">
+        <div className="flex items-center gap-6">
+          <Logo />
+          <div className="hidden md:block pl-6 border-l border-slate-300">
+            <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-slate-500 font-bold">
+              <Radio className="h-3 w-3 text-emerald-500 animate-pulse" /> Live dashboard · Indore, MP
             </div>
-            <h1 className="text-3xl md:text-4xl font-semibold mt-1">
-              LEFTO — Food Rescue Router
-            </h1>
-            <p className="opacity-90 mt-1 max-w-2xl">
-              Real-time matching of surplus food from Indore restaurants to NGOs &amp; shelters,
-              with OSRM road-network routing and Dijkstra-optimized paths.
+            <p className="text-sm text-slate-600 mt-0.5">
+              Real-time matching of surplus food to NGOs & shelters
             </p>
           </div>
-          <div className="flex items-center gap-3 self-start md:self-auto">
-            {/* Portal links */}
-            <div className="flex gap-2">
+        </div>
+        <div className="flex items-center gap-3 self-start md:self-auto">
+          {/* Portal links */}
+          <div className="flex gap-2">
+            {(!user || user.role === "restaurant") && (
               <Link to="/restaurant">
-                <Button variant="outline" size="sm" className="gap-1.5 text-xs bg-white/10 border-white/20 hover:bg-white/20 text-white">
+                <button className="neu-btn px-4 py-2 rounded-xl flex items-center gap-1.5 text-xs text-emerald-600">
                   <UtensilsCrossed className="h-3 w-3" /> Restaurant
-                </Button>
+                </button>
               </Link>
+            )}
+            {(!user || user.role === "ngo") && (
               <Link to="/ngo">
-                <Button variant="outline" size="sm" className="gap-1.5 text-xs bg-white/10 border-white/20 hover:bg-white/20 text-white">
+                <button className="neu-btn px-4 py-2 rounded-xl flex items-center gap-1.5 text-xs text-orange-600">
                   <HeartHandshake className="h-3 w-3" /> NGO
-                </Button>
+                </button>
               </Link>
+            )}
+            {(!user || user.role === "volunteer") && (
               <Link to="/volunteer">
-                <Button variant="outline" size="sm" className="gap-1.5 text-xs bg-white/10 border-white/20 hover:bg-white/20 text-white">
+                <button className="neu-btn px-4 py-2 rounded-xl flex items-center gap-1.5 text-xs text-purple-600">
                   <Truck className="h-3 w-3" /> Volunteer
-                </Button>
+                </button>
               </Link>
-            </div>
-            <Button
-              variant="secondary"
-              size="lg"
-              onClick={() => setRunning(!running)}
-            >
-              {running ? <Pause className="h-4 w-4 mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-              {running ? "Pause" : "Resume"}
-            </Button>
+            )}
           </div>
+          {user && (
+            <button
+              onClick={() => logout()}
+              className="neu-btn px-4 py-2 rounded-xl flex items-center gap-1.5 text-xs text-rose-500 font-semibold transition-colors"
+            >
+              <LogOut className="h-3 w-3" /> Logout
+            </button>
+          )}
+          <button
+            className="neu-flat px-4 py-2 rounded-xl flex items-center gap-1.5 text-xs font-semibold hover:text-slate-800 transition-colors"
+            onClick={() => setRunning(!running)}
+          >
+            {running ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+            {running ? "Pause" : "Resume"}
+          </button>
         </div>
       </header>
 

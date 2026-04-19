@@ -7,7 +7,9 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, UtensilsCrossed, Package, MapPin, Clock, Send, LogOut } from "lucide-react";
+import { ArrowLeft, Package, MapPin, Clock, Send, LogOut, UtensilsCrossed } from "lucide-react";
+import { geocodeAddress } from "@/lib/geocode";
+import { Logo } from "@/components/Logo";
 
 type DonationForm = {
   foodType: string;
@@ -46,7 +48,7 @@ export default function RestaurantPortal() {
       return;
     }
 
-    if (!user?.supabaseUserId) {
+    if (!user) {
       toast({ title: "User not properly authenticated", variant: "destructive" });
       setIsSubmitting(false);
       return;
@@ -64,14 +66,22 @@ export default function RestaurantPortal() {
       let businessId = localStorage.getItem("restaurant_business_id");
 
       if (!businessId) {
+        let lat = 22.7196;
+        let lng = 75.8577;
+        const geo = await geocodeAddress(form.pickupAddress + ", Indore, MP");
+        if (geo) {
+          lat = geo.lat;
+          lng = geo.lng;
+        }
+
         // Create a new business for this restaurant user
         const { data: newBiz, error: newBizError } = await supabase
           .from("businesses")
           .insert([{
             name: user.name,
             address: form.pickupAddress,
-            lat: 22.7196,
-            lng: 75.8577,
+            lat,
+            lng,
           }])
           .select("id")
           .single();
@@ -99,13 +109,32 @@ export default function RestaurantPortal() {
       if (shelters && shelters.length > 0) {
         shelterId = shelters[0].id;
       } else {
+        let shelterLat = 22.7196;
+        let shelterLng = 75.8577;
+        let shelterName = "Default NGO Shelter";
+        let shelterAddr = "Indore, MP";
+
+        if (form.ngoAddress) {
+          shelterName = "Target NGO";
+          shelterAddr = form.ngoAddress;
+          const ngoGeo = await geocodeAddress(form.ngoAddress + ", Indore, MP");
+          if (ngoGeo) {
+            shelterLat = ngoGeo.lat;
+            shelterLng = ngoGeo.lng;
+          }
+        } else {
+          // If no NGO provided, try to spread out the default NGO a bit
+          shelterLat = 22.6864;
+          shelterLng = 75.8534;
+        }
+
         const { data: newShelter, error: newShelterError } = await supabase
           .from("shelters")
           .insert([{
-            name: "Default NGO Shelter",
-            address: "Indore, MP",
-            lat: 22.7196,
-            lng: 75.8577,
+            name: shelterName,
+            address: shelterAddr,
+            lat: shelterLat,
+            lng: shelterLng,
           }])
           .select("id")
           .single();
@@ -127,7 +156,7 @@ export default function RestaurantPortal() {
           quantity: parseInt(form.quantity),
           expires_at: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
           status: "pending",
-          user_id: user.supabaseUserId,
+          user_id: user.supabaseUserId || user.id,
         } as any])
         .select()
         .single() as any);
@@ -165,93 +194,90 @@ export default function RestaurantPortal() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
-      <header className="bg-gradient-to-r from-amber-600 to-orange-500 text-white">
-        <div className="container mx-auto px-6 py-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link to="/" className="hover:opacity-80 transition-opacity">
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
-            <div>
-              <div className="flex items-center gap-2">
-                <UtensilsCrossed className="h-5 w-5" />
-                <h1 className="text-2xl font-bold">LEFTO — Restaurant Portal</h1>
-              </div>
-              <p className="text-sm opacity-90 mt-0.5">Donate surplus food to those in need</p>
-            </div>
+    <div className="min-h-screen neu-bg relative font-sleek text-slate-700 overflow-hidden">
+      {/* Decorative glowing blobs for the reflective greenish glass effect */}
+      <div className="absolute top-[10%] left-[-10%] w-96 h-96 bg-emerald-400/30 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-[10%] right-[-10%] w-96 h-96 bg-emerald-300/30 rounded-full blur-[100px] pointer-events-none" />
+
+      {/* Header */}
+      <header className="px-6 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-emerald-500 text-white shadow-md sticky top-0 z-50">
+        <div className="flex items-center gap-6">
+          <Logo />
+          <div className="hidden md:block pl-6 border-l border-emerald-400">
+            <h1 className="text-xl font-bold tracking-tight text-white">Restaurant Portal</h1>
+            <p className="text-sm text-emerald-100 mt-0.5">Donate surplus food seamlessly</p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="text-sm">
-              <p>Welcome, {user?.name}</p>
-              <p className="text-xs opacity-75">Role: {user?.role}</p>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleLogout}
-              className="bg-white/10 border-white/20 hover:bg-white/20 text-white gap-2"
-            >
-              <LogOut className="h-4 w-4" />
-              Logout
-            </Button>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="text-right hidden md:block">
+            <p className="font-medium text-white">{user?.name}</p>
+            <p className="text-xs text-emerald-100 uppercase tracking-widest">{user?.role}</p>
           </div>
+          <button
+            onClick={handleLogout}
+            className="px-4 py-2 rounded-xl flex items-center gap-2 text-sm font-semibold bg-white/20 hover:bg-white/30 transition-colors text-white backdrop-blur-md"
+          >
+            <LogOut className="h-4 w-4" />
+            Logout
+          </button>
         </div>
       </header>
 
-      <main className="container mx-auto px-6 py-10 max-w-2xl">
+      <main className="container mx-auto px-6 py-12 max-w-2xl relative z-10">
         {!showForm && !submitted && (
-          <Card className="border-0 shadow-xl bg-white/80 backdrop-blur">
-            <CardContent className="pt-10 pb-10 text-center space-y-6">
-              <div className="mx-auto w-20 h-20 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
-                <Package className="h-10 w-10 text-white" />
-              </div>
-              <div>
-                <h2 className="text-3xl font-bold text-gray-800">Surplus Food to Give?</h2>
-                <p className="text-gray-600 mt-2 max-w-md mx-auto leading-relaxed">
-                  Turn your excess food into hope. Connect with local volunteers and make a real difference today.
-                </p>
-              </div>
-              <Button
-                size="lg"
-                onClick={() => setShowForm(true)}
-                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg px-8 py-6 text-lg"
-              >
-                Donate Today! 🍽️
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="neu-flat rounded-3xl p-10 text-center space-y-8 animate-fade-in-up">
+            <div className="mx-auto w-24 h-24 neu-flat rounded-full flex items-center justify-center">
+              <Package className="h-10 w-10 text-emerald-500" />
+            </div>
+            <div>
+              <h2 className="text-3xl font-bold text-slate-800">Surplus Food to Give?</h2>
+              <p className="text-slate-500 mt-3 max-w-md mx-auto leading-relaxed text-lg">
+                Turn your excess food into hope. Connect with local volunteers instantly in a sleek, seamless way.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowForm(true)}
+              className="neu-btn text-emerald-600 px-10 py-4 rounded-2xl text-lg w-full max-w-sm mx-auto flex items-center justify-center gap-2"
+            >
+              <Package className="h-5 w-5" />
+              Start Donation
+            </button>
+          </div>
         )}
 
         {showForm && (
-          <Card className="border-0 shadow-xl bg-white/90 backdrop-blur">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-2 text-xl">
-                <UtensilsCrossed className="h-5 w-5 text-amber-500" />
-                Food Donation Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="foodType" className="flex items-center gap-1.5">
-                    <Package className="h-3.5 w-3.5 text-amber-500" /> Food Type
-                  </Label>
-                  <Input
-                    id="foodType"
-                    placeholder="e.g. Poha, Dal Bafla, Biryani..."
-                    value={form.foodType}
-                    onChange={(e) => updateField("foodType", e.target.value)}
-                    required
-                  />
-                </div>
+          <div className="neu-flat rounded-3xl p-8 animate-fade-in-up">
+            <div className="flex items-center gap-3 mb-8 pb-6 border-b border-white/20">
+              <div className="p-3 neu-pressed rounded-full">
+                <UtensilsCrossed className="h-6 w-6 text-emerald-500" />
+              </div>
+              <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Donation Details</h2>
+            </div>
+            
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <label htmlFor="foodType" className="flex items-center gap-2 text-sm font-semibold text-slate-600 ml-1">
+                  <Package className="h-4 w-4 text-emerald-500" /> Food Type
+                </label>
+                <input
+                  id="foodType"
+                  className="neu-input w-full px-5 py-4 rounded-2xl text-slate-700 placeholder-slate-400 transition-shadow"
+                  placeholder="e.g. Poha, Dal Bafla, Biryani..."
+                  value={form.foodType}
+                  onChange={(e) => updateField("foodType", e.target.value)}
+                  required
+                />
+              </div>
 
+              <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="quantity" className="flex items-center gap-1.5">
-                    <Package className="h-3.5 w-3.5 text-amber-500" /> Approx. Weight (Kg)
-                  </Label>
-                  <Input
+                  <label htmlFor="quantity" className="flex items-center gap-2 text-sm font-semibold text-slate-600 ml-1">
+                    <Package className="h-4 w-4 text-emerald-500" /> Weight (Kg)
+                  </label>
+                  <input
                     id="quantity"
                     type="number"
+                    className="neu-input w-full px-5 py-4 rounded-2xl text-slate-700 placeholder-slate-400"
                     placeholder="e.g. 5"
                     value={form.quantity}
                     onChange={(e) => updateField("quantity", e.target.value)}
@@ -260,74 +286,97 @@ export default function RestaurantPortal() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="readyTime" className="flex items-center gap-1.5">
-                    <Clock className="h-3.5 w-3.5 text-amber-500" /> Ready for Pickup
-                  </Label>
-                  <Input
+                  <label htmlFor="readyTime" className="flex items-center gap-2 text-sm font-semibold text-slate-600 ml-1">
+                    <Clock className="h-4 w-4 text-emerald-500" /> Ready Time
+                  </label>
+                  <input
                     id="readyTime"
                     type="time"
+                    className="neu-input w-full px-5 py-4 rounded-2xl text-slate-700"
                     value={form.readyTime}
                     onChange={(e) => updateField("readyTime", e.target.value)}
                   />
                 </div>
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="pickupAddress" className="flex items-center gap-1.5">
-                    <MapPin className="h-3.5 w-3.5 text-amber-500" /> Pickup Address
-                  </Label>
-                  <Input
-                    id="pickupAddress"
-                    placeholder="Restaurant address in Indore"
-                    value={form.pickupAddress}
-                    onChange={(e) => updateField("pickupAddress", e.target.value)}
-                    required
-                  />
-                </div>
+              <div className="space-y-2">
+                <label htmlFor="pickupAddress" className="flex items-center gap-2 text-sm font-semibold text-slate-600 ml-1">
+                  <MapPin className="h-4 w-4 text-emerald-500" /> Pickup Address
+                </label>
+                <input
+                  id="pickupAddress"
+                  className="neu-input w-full px-5 py-4 rounded-2xl text-slate-700 placeholder-slate-400"
+                  placeholder="Restaurant address in Indore"
+                  value={form.pickupAddress}
+                  onChange={(e) => updateField("pickupAddress", e.target.value)}
+                  required
+                />
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="ngoAddress" className="flex items-center gap-1.5">
-                    <MapPin className="h-3.5 w-3.5 text-green-500" /> Target NGO (optional)
-                  </Label>
-                  <Input
-                    id="ngoAddress"
-                    placeholder="Leave blank for automatic assignment"
-                    value={form.ngoAddress}
-                    onChange={(e) => updateField("ngoAddress", e.target.value)}
-                  />
-                </div>
+              <div className="space-y-2">
+                <label htmlFor="ngoAddress" className="flex items-center gap-2 text-sm font-semibold text-slate-600 ml-1">
+                  <MapPin className="h-4 w-4 text-orange-500" /> Target NGO (optional)
+                </label>
+                <input
+                  id="ngoAddress"
+                  className="neu-input w-full px-5 py-4 rounded-2xl text-slate-700 placeholder-slate-400"
+                  placeholder="Leave blank for automatic assignment"
+                  value={form.ngoAddress}
+                  onChange={(e) => updateField("ngoAddress", e.target.value)}
+                />
+              </div>
 
-                <div className="flex gap-3 pt-2">
-                  <Button type="submit" disabled={isSubmitting} className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 gap-2">
-                    <Send className="h-4 w-4" /> {isSubmitting ? "Submitting..." : "Confirm Donation"}
-                  </Button>
-                  <Button type="button" variant="outline" onClick={() => setShowForm(false)} disabled={isSubmitting}>
-                    Cancel
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
+              <div className="flex gap-4 pt-6">
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting} 
+                  className="neu-btn flex-1 py-4 rounded-2xl flex items-center justify-center gap-2 text-emerald-600 text-lg"
+                >
+                  <Send className="h-5 w-5" /> 
+                  {isSubmitting ? "Submitting..." : "Confirm Donation"}
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => setShowForm(false)} 
+                  disabled={isSubmitting}
+                  className="neu-flat px-8 py-4 rounded-2xl text-slate-500 hover:text-slate-700 font-semibold transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
         )}
 
         {submitted && (
-          <Card className="border-0 shadow-xl bg-white/90 backdrop-blur">
-            <CardContent className="pt-10 pb-10 text-center space-y-6">
-              <div className="text-5xl">🎉</div>
-              <div>
-                <h3 className="text-2xl font-bold text-gray-800 mb-2">Donation Submitted!</h3>
-                <p className="text-gray-600">Your donation has been posted. Volunteers will pick it up shortly.</p>
-              </div>
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                <p className="text-sm text-amber-900"><strong>Pickup OTP:</strong> {pickupOTP}</p>
-              </div>
-              <Button
+          <div className="neu-flat rounded-3xl p-10 text-center space-y-8 animate-fade-in-up">
+            <div className="mx-auto w-24 h-24 neu-flat rounded-full flex items-center justify-center">
+              <span className="text-4xl">🎉</span>
+            </div>
+            <div>
+              <h3 className="text-3xl font-bold text-slate-800 mb-3 tracking-tight">Success!</h3>
+              <p className="text-slate-500 text-lg">Your donation is live. Volunteers are being notified now.</p>
+            </div>
+            
+            <div className="neu-pressed rounded-2xl p-6 max-w-sm mx-auto">
+              <p className="text-sm text-slate-500 uppercase tracking-widest font-semibold mb-2">Pickup OTP</p>
+              <p className="text-4xl font-mono font-bold text-emerald-600 tracking-widest">{pickupOTP}</p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 max-w-sm mx-auto mt-6">
+              <button
                 onClick={() => setSubmitted(false)}
-                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
+                className="neu-btn text-emerald-600 px-6 py-4 rounded-2xl text-lg flex-1"
               >
-                Make Another Donation
-              </Button>
-            </CardContent>
-          </Card>
+                New Donation
+              </button>
+              <Link to="/" className="flex-1">
+                <button className="neu-flat w-full px-6 py-4 rounded-2xl text-slate-600 text-lg font-bold">
+                  Dashboard
+                </button>
+              </Link>
+            </div>
+          </div>
         )}
       </main>
     </div>
