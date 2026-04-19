@@ -60,7 +60,7 @@ const Index = () => {
             {(!user || user.role === "restaurant") && (
               <Link to="/restaurant">
                 <button className="neu-btn px-4 py-2 rounded-xl flex items-center gap-1.5 text-xs text-emerald-600">
-                  <UtensilsCrossed className="h-3 w-3" /> Restaurant
+                  <UtensilsCrossed className="h-3 w-3" /> Donor
                 </button>
               </Link>
             )}
@@ -184,11 +184,11 @@ const Index = () => {
 
 function Legend() {
   const rows = [
-    { color: "hsl(35, 95%, 50%)", label: "🥖 Restaurant with surplus food" },
+    { color: "hsl(35, 95%, 50%)", label: "🥖 Donor with surplus food" },
     { color: "hsl(152, 65%, 38%)", label: "🏠 NGO / Shelter (drop-off)" },
     { color: "hsl(210, 90%, 55%)", label: "🚗 Available driver" },
     { color: "hsl(0, 78%, 58%)", label: "🚗 Driver en route" },
-    { color: "hsl(280, 80%, 55%)", label: "🗺️ Restaurant → NGO route" },
+    { color: "hsl(280, 80%, 55%)", label: "🗺️ Donor → NGO route" },
   ];
   return (
     <div className="mt-4 pt-4 border-t border-border/60">

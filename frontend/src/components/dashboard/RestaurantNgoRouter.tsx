@@ -67,7 +67,7 @@ export function RestaurantNgoRouter({
 
   const handleCalculateRoute = async () => {
     if (selectedRestaurants.size === 0 || selectedNgos.size === 0) {
-      alert("Please select at least one restaurant and one NGO");
+      alert("Please select at least one donor and one NGO");
       return;
     }
 
@@ -122,10 +122,10 @@ export function RestaurantNgoRouter({
           <CardTitle className="text-lg">Route Planner</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Restaurants Section */}
+          {/* Donors Section */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="font-semibold text-sm">Restaurants</label>
+              <label className="font-semibold text-sm">Donors</label>
               <button
                 onClick={selectAllRestaurants}
                 className="text-xs text-blue-600 hover:underline"
@@ -135,7 +135,7 @@ export function RestaurantNgoRouter({
             </div>
             <div className="space-y-2 max-h-40 overflow-y-auto bg-gray-50 p-2 rounded">
               {restaurantList.length === 0 ? (
-                <p className="text-sm text-gray-500">No restaurants available</p>
+                <p className="text-sm text-gray-500">No donors available</p>
               ) : (
                 restaurantList.map((restaurant) => (
                   <label

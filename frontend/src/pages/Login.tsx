@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, UserRole } from '@/contexts/AuthContext';
-import { AlertCircle, User, ArrowLeft, KeyRound, Mail } from 'lucide-react';
+import { AlertCircle, User, ArrowLeft, KeyRound, Mail, Phone, MapPin, Image, FileText, Truck, Package } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 
 const Login: React.FC = () => {
@@ -14,13 +14,17 @@ const Login: React.FC = () => {
     email: '',
     password: '',
     name: '',
+    phone: '',
+    address: '',
+    vehicleType: '',
+    capacity: '',
   });
   const [formError, setFormError] = useState<string | null>(null);
 
   const roles: { value: UserRole; label: string; description: string }[] = [
   {
     value: 'restaurant',
-    label: 'Restaurant',
+    label: 'Donor',
     description: 'Donate surplus food',
   },
   {
@@ -37,7 +41,7 @@ const Login: React.FC = () => {
 
   const handleRoleSelect = (role: UserRole) => {
     setSelectedRole(role);
-    setFormData({ email: '', password: '', name: '' });
+    setFormData({ email: '', password: '', name: '', phone: '', address: '', vehicleType: '', capacity: '' });
     setFormError(null);
     setStep('form');
   };
@@ -48,7 +52,7 @@ const Login: React.FC = () => {
     setFormError(null);
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
@@ -74,11 +78,12 @@ const Login: React.FC = () => {
     }
 
     try {
-      await login(formData.email, formData.password, selectedRole!, formData.name);
+      await login(formData, selectedRole!);
       // Redirect to the role-specific page
       navigate(`/${selectedRole}`);
     } catch (err) {
-      setFormError(error || 'Login failed. Please try again.');
+      const errorMessage = err instanceof Error ? err.message : 'Login failed. Please try again.';
+      setFormError(errorMessage);
     }
   };
 
@@ -131,7 +136,7 @@ const Login: React.FC = () => {
 
             <div className="space-y-2">
               <label className="text-sm font-semibold text-slate-600 ml-2 flex items-center gap-2">
-                <User className="w-4 h-4 text-emerald-500" /> Name
+                <User className="w-4 h-4 text-emerald-500" /> {selectedRole === 'volunteer' ? 'Full Name' : 'Organization Name'}
               </label>
               <input
                 type="text"
@@ -139,7 +144,22 @@ const Login: React.FC = () => {
                 value={formData.name}
                 onChange={handleInputChange}
                 className="neu-input w-full px-5 py-4 rounded-2xl placeholder-slate-400"
-                placeholder="Your name"
+                placeholder="Enter name"
+                disabled={isLoading}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-slate-600 ml-2 flex items-center gap-2">
+                <Phone className="w-4 h-4 text-emerald-500" /> Phone Number
+              </label>
+              <input
+                type="tel"
+                name="phone"
+                value={formData.phone}
+                onChange={handleInputChange}
+                className="neu-input w-full px-5 py-4 rounded-2xl placeholder-slate-400"
+                placeholder="Enter phone number"
                 disabled={isLoading}
               />
             </div>
@@ -173,6 +193,66 @@ const Login: React.FC = () => {
                 disabled={isLoading}
               />
             </div>
+
+            {/* Conditional fields for NGO and Donor */}
+            {(selectedRole === 'ngo' || selectedRole === 'restaurant') && (
+              <>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-600 ml-2 flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-purple-500" /> Full Address
+                  </label>
+                  <input type="text" name="address" value={formData.address} onChange={handleInputChange} className="neu-input w-full px-5 py-4 rounded-2xl placeholder-slate-400" placeholder="Enter full address" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-600 ml-2 flex items-center gap-2">
+                    <Image className="w-4 h-4 text-blue-500" /> Upload Image of the Place
+                  </label>
+                  <input type="file" accept="image/*" className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100" />
+                </div>
+              </>
+            )}
+
+            {/* Conditional fields for Volunteer */}
+            {selectedRole === 'volunteer' && (
+              <>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-600 ml-2 flex items-center gap-2">
+                    <Image className="w-4 h-4 text-blue-500" /> Upload Driver Image
+                  </label>
+                  <input type="file" accept="image/*" className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-600 ml-2 flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-blue-500" /> Upload Driving License
+                  </label>
+                  <input type="file" accept="image/*" className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-600 ml-2 flex items-center gap-2">
+                    <Truck className="w-4 h-4 text-orange-500" /> Vehicle Type
+                  </label>
+                  <select name="vehicleType" value={formData.vehicleType} onChange={handleInputChange} className="neu-input w-full px-5 py-4 rounded-2xl text-slate-600">
+                    <option value="" disabled>Select Vehicle Type</option>
+                    <option value="2-wheeler">2 Wheeler (Bike/Scooter) [For 0-20kg]</option>
+                    <option value="3-wheeler">3 Wheeler (Auto/Rickshaw)</option>
+                    <option value="4-wheeler">4 Wheeler (Car/Van) [For &gt;20kg]</option>
+                    <option value="truck">Large Truck</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-600 ml-2 flex items-center gap-2">
+                    <Package className="w-4 h-4 text-orange-500" /> Carrying Capacity
+                  </label>
+                  <input type="text" name="capacity" value={formData.capacity} onChange={handleInputChange} className="neu-input w-full px-5 py-4 rounded-2xl placeholder-slate-400" placeholder="e.g., 50kg" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-600 ml-2 flex items-center gap-2">
+                    <Image className="w-4 h-4 text-blue-500" /> Vehicle Image (Number Plate visible)
+                  </label>
+                  <input type="file" accept="image/*" className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100" />
+                </div>
+              </>
+            )}
 
             <div className="neu-pressed rounded-xl p-4 text-xs text-slate-500 mt-2 text-center space-y-1">
               <p className="font-semibold text-slate-600 uppercase tracking-widest mb-2">Demo Credentials</p>

@@ -237,7 +237,7 @@ export default function VolunteerPortal() {
           <div className="neu-flat rounded-3xl p-8 text-center space-y-6 animate-fade-in-up">
             <h3 className="text-2xl font-bold text-slate-800 tracking-tight">Pickup Verification</h3>
             <p className="text-slate-600 max-w-sm mx-auto">
-              Enter the OTP provided by the restaurant to confirm you've collected the food.
+              Enter the OTP provided by the donor to confirm you've collected the food.
             </p>
             <input
               type="text"

@@ -130,7 +130,7 @@ export default function NgoPortal() {
             <div>
               <h2 className="text-3xl font-bold text-slate-800">Need Food for People?</h2>
               <p className="text-slate-600 mt-2 max-w-md mx-auto leading-relaxed">
-                Submit a request and we'll match you with nearby restaurants that have surplus food ready for pickup.
+                Submit a request and we'll match you with nearby donors that have surplus food ready for pickup.
               </p>
             </div>
             <button

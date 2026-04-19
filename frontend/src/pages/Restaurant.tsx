@@ -7,9 +7,10 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Package, MapPin, Clock, Send, LogOut, UtensilsCrossed } from "lucide-react";
+import { ArrowLeft, Package, MapPin, Clock, Send, LogOut, UtensilsCrossed, Truck } from "lucide-react";
 import { geocodeAddress } from "@/lib/geocode";
 import { Logo } from "@/components/Logo";
+import { requiredVehicleForWeight, matchPickupsToDrivers, type VehicleType, type Driver, type Pickup } from "@/lib/bipartiteMatch";
 
 type DonationForm = {
   foodType: string;
@@ -147,13 +148,18 @@ export default function RestaurantPortal() {
         }
       }
 
+      const weightKg = parseInt(form.quantity);
+      const vehicleNeeded = requiredVehicleForWeight(weightKg);
+
       const { data: pickup, error: pickupError } = await (supabase
         .from("pickups")
         .insert([{
           business_id: businessId,
           shelter_id: shelterId,
           food_description: form.foodType,
-          quantity: parseInt(form.quantity),
+          quantity: weightKg,
+          weight_kg: weightKg,
+          required_vehicle: vehicleNeeded,
           expires_at: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
           status: "pending",
           user_id: user.supabaseUserId || user.id,
@@ -165,12 +171,56 @@ export default function RestaurantPortal() {
         console.warn("Pickup creation warning:", pickupError);
       }
 
+      // ── Bipartite Matching: find a suitable volunteer ──────────
+      let assignedDriverName: string | null = null;
+      try {
+        // Fetch all online volunteers from Supabase
+        const { data: volunteers } = await (supabase
+          .from('app_users' as any)
+          .select('id, name, vehicle_type')
+          .eq('role', 'volunteer') as any);
+
+        if (volunteers && volunteers.length > 0) {
+          const drivers: Driver[] = volunteers.map((v: any) => ({
+            id: v.id,
+            name: v.name,
+            vehicleType: (v.vehicle_type || '2-wheeler') as VehicleType,
+            isOnline: true, // treat all registered volunteers as available for now
+          }));
+
+          const pickupForMatch: Pickup = {
+            id: pickup?.id || 'temp',
+            weightKg,
+            requiredVehicle: vehicleNeeded,
+          };
+
+          const matches = matchPickupsToDrivers([pickupForMatch], drivers);
+          
+          if (matches.length > 0) {
+            const match = matches[0];
+            assignedDriverName = match.driverName;
+            
+            // Update the pickup with the assigned driver
+            if (pickup?.id) {
+              await (supabase
+                .from('pickups' as any)
+                .update({ assigned_driver_id: match.driverId, status: 'assigned' })
+                .eq('id', pickup.id) as any);
+            }
+          }
+        }
+      } catch (matchErr) {
+        console.warn('Bipartite matching error (non-critical):', matchErr);
+      }
+
       localStorage.setItem("latestDonation", JSON.stringify({
         ...form,
         pickupId: pickup?.id,
         timestamp: new Date().toISOString(),
         pickupOTP: generatedPickupOTP,
         dropOTP: generatedDropOTP,
+        requiredVehicle: vehicleNeeded,
+        assignedDriver: assignedDriverName,
       }));
 
       setSubmitted(true);
@@ -204,8 +254,8 @@ export default function RestaurantPortal() {
         <div className="flex items-center gap-6">
           <Logo />
           <div className="hidden md:block pl-6 border-l border-emerald-400">
-            <h1 className="text-xl font-bold tracking-tight text-white">Restaurant Portal</h1>
-            <p className="text-sm text-emerald-100 mt-0.5">Donate surplus food seamlessly</p>
+            <h1 className="text-xl font-bold tracking-tight text-white">Donor Portal</h1>
+            <p className="text-sm text-emerald-100 mt-0.5">Donate surplus food seamlessly as a Donor</p>
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -306,7 +356,7 @@ export default function RestaurantPortal() {
                 <input
                   id="pickupAddress"
                   className="neu-input w-full px-5 py-4 rounded-2xl text-slate-700 placeholder-slate-400"
-                  placeholder="Restaurant address in Indore"
+                  placeholder="Donor address in Indore"
                   value={form.pickupAddress}
                   onChange={(e) => updateField("pickupAddress", e.target.value)}
                   required
@@ -361,6 +411,24 @@ export default function RestaurantPortal() {
             <div className="neu-pressed rounded-2xl p-6 max-w-sm mx-auto">
               <p className="text-sm text-slate-500 uppercase tracking-widest font-semibold mb-2">Pickup OTP</p>
               <p className="text-4xl font-mono font-bold text-emerald-600 tracking-widest">{pickupOTP}</p>
+            </div>
+
+            {/* Vehicle & Driver Info */}
+            <div className="neu-pressed rounded-2xl p-5 max-w-sm mx-auto space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-slate-500 font-medium flex items-center gap-1.5">
+                  <Truck className="h-4 w-4" /> Required Vehicle
+                </span>
+                <span className="font-bold text-slate-700 capitalize">
+                  {JSON.parse(localStorage.getItem("latestDonation") || "{}").requiredVehicle || "2-wheeler"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-slate-500 font-medium">Assigned Driver</span>
+                <span className="font-bold text-emerald-600">
+                  {JSON.parse(localStorage.getItem("latestDonation") || "{}").assignedDriver || "Searching..."}
+                </span>
+              </div>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 max-w-sm mx-auto mt-6">
