@@ -160,6 +160,8 @@ export default function RestaurantPortal() {
           quantity: weightKg,
           weight_kg: weightKg,
           required_vehicle: vehicleNeeded,
+          pickup_otp: generatedPickupOTP,
+          drop_otp: generatedDropOTP,
           expires_at: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
           status: "pending",
           user_id: user.supabaseUserId || user.id,

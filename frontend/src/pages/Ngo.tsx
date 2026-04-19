@@ -4,6 +4,7 @@ import { toast } from "@/hooks/use-toast";
 import { ArrowLeft, HeartHandshake, Package, MapPin, Send } from "lucide-react";
 import { LiveDeliveryMap } from "@/components/dashboard/LiveDeliveryMap";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { LogOut } from "lucide-react";
 import { Logo } from "@/components/Logo";
 
@@ -19,20 +20,30 @@ export default function NgoPortal() {
   const { user, logout } = useAuth();
 
   useEffect(() => {
-    // Listen for cross-tab storage changes
-    const handleStorage = () => {
-      setVolunteerStatus(localStorage.getItem("volunteerStatus"));
-    };
-    window.addEventListener("storage", handleStorage);
+    if (!submitted) return;
+    // Poll Supabase for pickup status changes (replaces localStorage polling)
+    const pollInterval = setInterval(async () => {
+      try {
+        const { data: latestPickup } = await (supabase
+          .from('pickups' as any)
+          .select('status')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single() as any);
+        
+        if (latestPickup?.status === 'in_transit') {
+          setVolunteerStatus('in_transit');
+        } else if (latestPickup?.status === 'completed') {
+          setVolunteerStatus('completed');
+        }
+      } catch {
+        // Also check localStorage as fallback for same-browser demo
+        setVolunteerStatus(localStorage.getItem("volunteerStatus"));
+      }
+    }, 2000);
     
-    // Also poll occasionally in case events miss
-    const pollInterval = setInterval(handleStorage, 1000);
-    
-    return () => {
-      window.removeEventListener("storage", handleStorage);
-      clearInterval(pollInterval);
-    };
-  }, []);
+    return () => clearInterval(pollInterval);
+  }, [submitted]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -53,13 +64,32 @@ export default function NgoPortal() {
     return () => clearInterval(interval);
   }, [submitted, volunteerStatus]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!quantity) {
       toast({ title: "Please specify food quantity", variant: "destructive" });
       return;
     }
 
-    setDropOTP(localStorage.getItem("dropOTP") ?? "----");
+    // Try to get drop_otp from the latest pending pickup in Supabase
+    let otp = "----";
+    try {
+      const { data: latestPickup } = await (supabase
+        .from('pickups' as any)
+        .select('drop_otp')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single() as any);
+      
+      if (latestPickup?.drop_otp) {
+        otp = latestPickup.drop_otp;
+      }
+    } catch {
+      // Fallback to localStorage for same-browser demo
+      otp = localStorage.getItem("dropOTP") ?? "----";
+    }
+
+    setDropOTP(otp);
     setSubmitted(true);
     setShowForm(false);
     

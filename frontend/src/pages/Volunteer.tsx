@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { ArrowLeft, Truck, MapPin, Package, CheckCircle2, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { LiveDeliveryMap } from "@/components/dashboard/LiveDeliveryMap";
 import { Logo } from "@/components/Logo";
 
@@ -15,22 +16,62 @@ export default function VolunteerPortal() {
   const [pickupOtpInput, setPickupOtpInput] = useState("");
   const [dropOtpInput, setDropOtpInput] = useState("");
   const [transitProgress, setTransitProgress] = useState(0);
+  const [activePickup, setActivePickup] = useState<any>(null);
 
   const handleToggle = useCallback((checked: boolean) => {
     setIsOnline(checked);
     if (checked) {
       setFlowState("waiting");
-      // Simulate receiving an order after 2.5 seconds
-      setTimeout(() => setFlowState("notification"), 2500);
     } else {
       setFlowState("offline");
     }
   }, []);
 
-  const handleAccept = () => {
+  // Poll Supabase for pending pickups when online & waiting
+  useEffect(() => {
+    if (!isOnline || flowState !== "waiting") return;
+
+    const pollForPickups = async () => {
+      try {
+        const { data: pendingPickups } = await (supabase
+          .from('pickups' as any)
+          .select('*, businesses:business_id(name, address), shelters:shelter_id(name, address)')
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+          .limit(1) as any);
+
+        if (pendingPickups && pendingPickups.length > 0) {
+          setActivePickup(pendingPickups[0]);
+          setFlowState("notification");
+        }
+      } catch {
+        // Fallback: check localStorage for same-browser demo
+        const donation = localStorage.getItem("latestDonation");
+        if (donation) {
+          setActivePickup(JSON.parse(donation));
+          setFlowState("notification");
+        }
+      }
+    };
+
+    // First check immediately, then poll every 3 seconds
+    pollForPickups();
+    const interval = setInterval(pollForPickups, 3000);
+    return () => clearInterval(interval);
+  }, [isOnline, flowState]);
+
+  const handleAccept = async () => {
     setFlowState("pickup_otp");
     toast({ title: "📍 Navigating to pickup location..." });
-    // Simulate arriving at pickup
+
+    // Update pickup status in Supabase
+    if (activePickup?.id) {
+      await (supabase
+        .from('pickups' as any)
+        .update({ status: 'accepted' })
+        .eq('id', activePickup.id) as any);
+    }
+
     setTimeout(() => {
       toast({ title: "Arrived at pickup!", description: "Please verify OTP." });
     }, 2000);
@@ -38,25 +79,29 @@ export default function VolunteerPortal() {
 
   const handleDecline = () => {
     setFlowState("waiting");
+    setActivePickup(null);
     toast({ title: "Order declined", description: "Waiting for next request..." });
-    // Re-trigger a mock order
-    if (isOnline) {
-      setTimeout(() => setFlowState("notification"), 3000);
-    }
   };
 
-  const verifyPickup = () => {
-    const realOTP = localStorage.getItem("pickupOTP") ?? "5319";
+  const verifyPickup = async () => {
+    // Get real OTP from Supabase pickup record, then fallback to localStorage
+    let realOTP = activePickup?.pickup_otp || localStorage.getItem("pickupOTP") || "5319";
     if (pickupOtpInput === realOTP) {
       setFlowState("in_transit");
       setPickupOtpInput("");
       setTransitProgress(0);
       
-      // Notify NGO page that driver is en route
+      // Update status in Supabase so NGO can track
+      if (activePickup?.id) {
+        await (supabase
+          .from('pickups' as any)
+          .update({ status: 'in_transit' })
+          .eq('id', activePickup.id) as any);
+      }
+      // Also keep localStorage as fallback
       localStorage.setItem("volunteerStatus", "in_transit");
 
       toast({ title: "✅ Package secured!", description: "Navigating to NGO drop-off..." });
-      // Simulate arriving at NGO (10 seconds to match the NGO page distance countdown)
       setTimeout(() => {
         setFlowState("drop_otp");
         toast({ title: "Arrived at NGO!", description: "Enter drop-off OTP." });
@@ -66,11 +111,20 @@ export default function VolunteerPortal() {
     }
   };
 
-  const verifyDrop = () => {
-    const realOTP = localStorage.getItem("dropOTP") ?? "8642";
+  const verifyDrop = async () => {
+    // Get real OTP from Supabase pickup record, then fallback to localStorage
+    let realOTP = activePickup?.drop_otp || localStorage.getItem("dropOTP") || "8642";
     if (dropOtpInput === realOTP) {
       setFlowState("completed");
       setDropOtpInput("");
+
+      // Update status in Supabase so NGO knows delivery is done
+      if (activePickup?.id) {
+        await (supabase
+          .from('pickups' as any)
+          .update({ status: 'completed' })
+          .eq('id', activePickup.id) as any);
+      }
       localStorage.setItem("volunteerStatus", "completed");
       toast({ title: "🎉 Delivery Complete!" });
     } else {
@@ -85,7 +139,6 @@ export default function VolunteerPortal() {
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (flowState === "in_transit") {
-      // 10 seconds total: update every 100ms (100 steps of 0.01)
       interval = setInterval(() => {
         setTransitProgress((prev) => Math.min(1, prev + 0.01));
       }, 100);
@@ -95,8 +148,8 @@ export default function VolunteerPortal() {
     return () => clearInterval(interval);
   }, [flowState]);
 
-  // Fetch latest donation on mount or when state changes
-  const latestDonation = JSON.parse(localStorage.getItem("latestDonation") || "null");
+  // Fetch latest donation from activePickup or localStorage
+  const latestDonation = activePickup || JSON.parse(localStorage.getItem("latestDonation") || "null");
 
   const statusText: Record<FlowState, string> = {
     offline: "Ready to help? Go online to receive orders.",
@@ -192,7 +245,7 @@ export default function VolunteerPortal() {
                 <MapPin className="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" />
                 <div>
                   <div className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1">Pickup</div>
-                  <div className="text-slate-800 font-medium">{latestDonation?.pickupAddress || "Sarafa Bazaar, Indore"}</div>
+                  <div className="text-slate-800 font-medium">{latestDonation?.businesses?.address || latestDonation?.pickupAddress || "Sarafa Bazaar, Indore"}</div>
                 </div>
               </div>
 
@@ -200,7 +253,7 @@ export default function VolunteerPortal() {
                 <MapPin className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" />
                 <div>
                   <div className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1">Drop-off</div>
-                  <div className="text-slate-800 font-medium">{latestDonation?.ngoAddress || "Annapurna Rasoi, Near Sirpur Lake"}</div>
+                  <div className="text-slate-800 font-medium">{latestDonation?.shelters?.address || latestDonation?.ngoAddress || "Annapurna Rasoi, Near Sirpur Lake"}</div>
                 </div>
               </div>
 
@@ -210,7 +263,7 @@ export default function VolunteerPortal() {
                   <span className="text-slate-600 text-sm font-semibold">Package:</span>
                 </div>
                 <span className="text-purple-700 font-bold text-right">
-                  {latestDonation?.quantity || 50} kg, {latestDonation?.foodType || "Surplus Jalebi + Garadu"}
+                  {latestDonation?.quantity || 50} kg, {latestDonation?.food_description || latestDonation?.foodType || "Surplus Food"}
                 </span>
               </div>
             </div>
